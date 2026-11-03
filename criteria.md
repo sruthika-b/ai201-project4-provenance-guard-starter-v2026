@@ -46,10 +46,12 @@ Two things worth knowing before you pick numbers:
 
 <!-- Your criterion. It must name a number. -->
 
+Across each of three evaluation trials, at most 1 of 10 pieces I wrote myself is labeled high-confidence AI.
 
 
 **Why this target:**
 
+I allow a small number of false positives because detector signals are imperfect, but a wrong AI accusation has a real cost for the writer. The limit must hold in every trial, not just on average.
 
 
 ---
@@ -58,10 +60,12 @@ Two things worth knowing before you pick numbers:
 
 <!-- Your criterion. -->
 
+In each of three trials, the calibration set produces at least one `human`, one `unsure`, and one `ai` label.
 
 
 **Why this target:**
 
+All three outcomes need to be reachable for the service to communicate both its conclusions and its uncertainty; a label that never appears is not useful.
 
 
 ---
@@ -70,10 +74,12 @@ Two things worth knowing before you pick numbers:
 
 <!-- Your criterion. -->
 
+For 3 appeals submitted against 3 valid content IDs, all 3 requests return HTTP 200 with status `under_review`, and each creates an appeal entry in the audit log while preserving the original decision entry.
 
 
 **Why this target:**
 
+Writers need a dependable way to challenge a wrong result. Checking both the response and append-only log confirms the appeal was recorded without erasing what the system originally decided.
 
 
 ---
@@ -82,10 +88,12 @@ Two things worth knowing before you pick numbers:
 
 <!-- Your criterion. -->
 
+In each of three trials, the median combined score for 5 clearly AI-written samples is at least 0.20 higher than the median combined score for 5 clearly human-written samples.
 
 
 **Why this target:**
 
+The signals should separate clear examples on average, but they will not perfectly identify every author. A 0.20 gap is large enough to be useful while allowing overlap between individual texts.
 
 
 ---
@@ -94,10 +102,12 @@ Two things worth knowing before you pick numbers:
 
 <!-- Your criterion. -->
 
+For each of 4 invalid submissions (missing `text`, empty `text`, `null` text, and text over the scoring limit), the service returns the documented `400` or `413` response and records a rejection instead of returning a `5xx` error.
 
 
 **Why this target:**
 
+Malformed input should not crash the service or disappear without a trace. Testing four distinct cases makes the expected behavior concrete and helps diagnose failures.
 
 
 ---
