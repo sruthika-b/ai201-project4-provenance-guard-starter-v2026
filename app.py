@@ -208,29 +208,29 @@ def submit():
     text = payload.get("text")
     creator_id = payload.get("creator_id")
 
-    # 3. Then call ONE signal — `detector.model_signal(text)` — and put the
-    #  real number in. Leave confidence and label as placeholders.
+
     model_score = detector.model_signal(text) if text else None
     style_score = stylometry.style_signal(text) if text else 0.5
     combined_score = scoring.combine_signals(model_score, style_score) if model_score is not None else 0.5
+    guess, label = scoring.score_to_label(combined_score)
     content_id = str(uuid.uuid4())
 
     audit.log_decision(
         content_id=content_id,
         creator_id=creator_id or "unknown",
-        guess="...",
+        guess=guess,
         model_score=model_score,
         style_score=style_score,
         combined_score=combined_score,
-        label="...",
+        label=label,
         status="decided",
     )
 
     return jsonify({
         "content_id": content_id,
-        "guess": "...",
+        "guess": guess,
         "confidence": combined_score,
-        "label": "...",
+        "label": label,
         "model_score": model_score if model_score is not None else 0.0,
         "style_score": style_score,
     }), 200

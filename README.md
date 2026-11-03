@@ -39,17 +39,17 @@
 <!-- The path a submission takes, from arriving to the label a reader sees.
      Six or seven steps — this is the trace you wrote in Milestone 1. -->
 
-**Intended path (the two submission routes are not implemented yet):**
+**Current submission path (`/appeal` is not implemented yet):**
 
 1. A client sends JSON containing `text` and `creator_id` to `POST /submit`.
-2. Flask parses the request and the route validates the fields. Invalid input should get an error response, not a detector crash.
-3. The route assigns a `content_id` so this decision can be found and appealed later.
-4. `detector.model_signal(text)` runs the local GPT-2 model and adds `model_score`, a 0–1 predictability-based AI-likelihood signal.
-5. `stylometry.style_signal(text)` measures sentence lengths, vocabulary repetition, and punctuation; it adds `style_score` without interpreting the meaning.
-6. `scoring.combine_signals(...)` adds the two scores into one AI-likelihood score, then `scoring.score_to_label(...)` adds a machine-readable guess and reader-facing label.
+2. Flask parses the JSON body and the route extracts `text` and `creator_id`.
+3. `detector.model_signal(text)` runs the local GPT-2 model and adds `model_score`, a 0–1 predictability-based AI-likelihood signal.
+4. `stylometry.style_signal(text)` measures sentence lengths, vocabulary repetition, and punctuation; it adds `style_score` without interpreting the meaning.
+5. `scoring.combine_signals(...)` combines both scores into one AI-likelihood score.
+6. `scoring.score_to_label(...)` maps that score to a machine-readable guess and reader-facing sentence; the route creates a `content_id` for later reference.
 7. `audit.log_decision(...)` records the scores and decision; Flask returns the content ID, scores, guess, confidence score, and label to the client.
 
-The route currently returns `501 not_implemented`; the style measurements and label wording are also still stubs/placeholders. The steps above describe the contract this write-up is setting, not a claim that the full path runs today.
+`POST /submit` currently runs this path. `POST /appeal` still returns `501 not_implemented`.
 
 
 ---
@@ -126,7 +126,7 @@ It says plainly that the system cannot tell and that a score is not evidence of 
 ## False-positive trace
 Consider a real writer who uses short, ordinary sentences. For an illustrative score path, suppose their text gets `model_score = 0.92` and `style_score = 0.50`. The combined score is `(0.92 + 0.50) / 2 = 0.71`, above the current `0.65` AI threshold. These scores illustrate how a false positive could occur; they are not a measured model run.
 
-The service would return `guess: "ai"` and the high-confidence-AI wording above. That is a serious false positive: the score describes how the signals reacted to the text, not who wrote it. The writer can send `POST /appeal` with the returned `content_id` and a reason. The intended endpoint appends an appeal to the audit log and marks the item `under_review`; it does not rerun the detector, erase the original score, or itself decide the appeal. A human review step is still needed. At present `/submit` and `/appeal` both return `501`, so this remedy is a design requirement, not an available feature yet.
+The service would return `guess: "ai"` and the high-confidence-AI wording above. That is a serious false positive: the score describes how the signals reacted to the text, not who wrote it. The writer can send `POST /appeal` with the returned `content_id` and a reason. The intended endpoint appends an appeal to the audit log and marks the item `under_review`; it does not rerun the detector, erase the original score, or itself decide the appeal. A human review step is still needed. `/submit` is implemented; `/appeal` still returns `501` and is not yet available.
 
 ## Endpoint contracts
 These are the target contracts for the two routes students build. Both accept and return JSON. A successful submission is `200`; malformed requests are `400`; a text exceeding the detector's 400-token scoring limit should be rejected as `413` rather than silently giving the style signal a longer text than the model signal sees. If rate limiting is enabled, a rejected request is `429`. The implementation must keep this behavior aligned with the detector, which currently truncates at 400 tokens.
