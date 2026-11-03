@@ -239,7 +239,7 @@ def submit():
 @app.post("/appeal")
 def appeal():
     """
-    A writer says you got it wrong. ← TODO — Milestone 5
+    Record a writer's request for review.
 
     Expects JSON:
         {"content_id": "...", "reasoning": "..."}
@@ -256,14 +256,34 @@ def appeal():
     to the person on the other end. It's the only thing standing between a
     wrong accusation and nothing at all.
     """
-    payload = request.get_json(silent=True) or {}
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"error": "invalid_request", "message": "Request body must be a JSON object."}), 400
 
-    # TODO: delete this and build the route.
+    content_id = payload.get("content_id")
+    reasoning = payload.get("reasoning")
+    if not isinstance(content_id, str) or not content_id.strip():
+        return jsonify({"error": "invalid_request", "message": "content_id must be a non-empty string."}), 400
+    if not isinstance(reasoning, str) or not reasoning.strip():
+        return jsonify({"error": "invalid_request", "message": "reasoning must be a non-empty string."}), 400
+
+    entries = audit.entries_for(content_id)
+    decision = next((entry for entry in entries if entry.get("event") != "appeal"), None)
+    if decision is None:
+        return jsonify({"error": "content_not_found", "message": "No submission was found for this content_id."}), 404
+    if any(entry.get("event") == "appeal" for entry in entries):
+        return jsonify({"error": "appeal_exists", "message": "An appeal has already been recorded for this submission."}), 409
+
+    audit.log_appeal(
+        content_id=content_id,
+        creator_id=decision.get("creator_id", "unknown"),
+        reasoning=reasoning.strip(),
+    )
     return jsonify({
-        "error": "not_implemented",
-        "message": "POST /appeal isn't built yet — see the TODO in app.py.",
-        "you_sent": payload,
-    }), 501
+        "content_id": content_id,
+        "status": "under_review",
+        "message": "Your appeal has been recorded for review.",
+    }), 200
 
 
 # ── Already works ─────────────────────────────────────────────────────────────

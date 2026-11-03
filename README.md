@@ -39,17 +39,17 @@
 <!-- The path a submission takes, from arriving to the label a reader sees.
      Six or seven steps — this is the trace you wrote in Milestone 1. -->
 
-**Current submission path (`/appeal` is not implemented yet):**
+**Submission path:**
 
-1. A client sends JSON containing `text` and `creator_id` to `POST /submit`.
-2. Flask parses the JSON body and the route extracts `text` and `creator_id`.
-3. `detector.model_signal(text)` runs the local GPT-2 model and adds `model_score`, a 0–1 predictability-based AI-likelihood signal.
-4. `stylometry.style_signal(text)` measures sentence lengths, vocabulary repetition, and punctuation; it adds `style_score` without interpreting the meaning.
-5. `scoring.combine_signals(...)` combines both scores into one AI-likelihood score.
-6. `scoring.score_to_label(...)` maps that score to a machine-readable guess and reader-facing sentence; the route creates a `content_id` for later reference.
-7. `audit.log_decision(...)` records the scores and decision; Flask returns the content ID, scores, guess, confidence score, and label to the client.
+1. A client posts JSON containing `text` and `creator_id` to `/submit`.
+2. The route passes the text to `detector.model_signal`, which returns a 0–1 predictability score.
+3. `stylometry.style_signal` measures sentence-length variation, vocabulary repetition, and punctuation as surface features.
+4. `scoring.combine_signals` combines the two scores using the configured weights.
+5. `scoring.score_to_label` maps the combined score to a guess and reader-facing sentence.
+6. The route creates a `content_id` and `audit.log_decision` records the decision and scores.
+7. Flask returns the content ID, both signal scores, combined score, guess, and label to the caller.
 
-`POST /submit` currently runs this path. `POST /appeal` still returns `501 not_implemented`.
+To appeal, a writer posts the returned content ID and a reason to `/appeal`. The route finds the original decision and appends an appeal event with status `under_review`; the original decision remains in the log.
 
 
 ---
@@ -72,7 +72,7 @@
 
 ### Signal two — the style signal
 
-**What it measures:** The style signal measures surface form: sentence-length variation, type-token ratio (unique words relative to total words), and punctuation density. The implementation converts each into a 0–1 AI like component and takes their equal weight mean. Low sentence length variation, repeated vocabulary, and low punctuation density push the score upward. This is a heuristic not a validated authorship test.
+**What it measures:** The style signal measures surface form: sentence-length variation, type-token ratio (unique words relative to total words), and punctuation density. Each measure is converted to a 0–1 AI-like component, and the implementation takes their equal-weight mean. Low sentence-length variation, repeated vocabulary, and low punctuation density push the score upward. This is a heuristic, not a validated authorship test.
 
 **Why that might differ between human and AI writing:** Generated prose can be more even in sentence length and reuse a narrower vocabulary; an individual human writer may produce more uneven rhythms and distinctive punctuation. These are tendencies, not authorship rules.
 
@@ -85,11 +85,11 @@
 
 **The rule:**
 
-Take a weighted average using the configured signal weights. Disagreement pulls the combined score between the two signals, but does not automatically mean `unsure`; the configured label thresholds decide the final label. This lets one signal temper the other without allowing disagreement alone to override the score.
+Take a weighted average. When the signals disagree, the result falls between them, but disagreement alone does not guarantee an `unsure` label; the thresholds determine the final label.
 
 **The numbers:**
 
-With `WEIGHT_MODEL_SIGNAL = 0.5` and `WEIGHT_STYLE_SIGNAL = 0.5` in `config.py`, `combined_score = (0.5 * model_score + 0.5 * style_score) / (0.5 + 0.5)`. The weights currently give each signal equal influence; they should be calibrated against real writing before being treated as validated.
+With `WEIGHT_MODEL_SIGNAL = 0.5` and `WEIGHT_STYLE_SIGNAL = 0.5` in `config.py`, `combined_score = (0.5 * model_score + 0.5 * style_score) / (0.5 + 0.5)`, equivalent to `0.5 * model_score + 0.5 * style_score` for these settings. The weights are heuristic, not calibrated probabilities.
 
 **Where it lives:** `scoring.py::combine_signals`
 
@@ -97,7 +97,7 @@ With `WEIGHT_MODEL_SIGNAL = 0.5` and `WEIGHT_STYLE_SIGNAL = 0.5` in `config.py`,
      somewhere else, say where. -->
 
 **A case where my two signals split, and what my rule does with it:**
-For the mixed-style paragraph, `model_score = 0.8456` and `style_score = 0.5718`, so the equal-weight average is `0.7087`. Since that exceeds the current `AI_THRESHOLD = 0.65`, the label is high-confidence AI, even though the style signal is less AI-like. The average tempers the model score, but not enough to change its label in this example; that is a remaining false-positive risk to evaluate.
+For the mixed-style paragraph, `model_score = 0.8456` and `style_score = 0.5718`, so the combined score is `0.7087`. This exceeds `AI_THRESHOLD = 0.65`, so the AI label is returned despite the lower style score. Averaging moderates the model score but does not prevent every false positive.
 
 ---
 
@@ -110,9 +110,9 @@ For the mixed-style paragraph, `model_score = 0.8456` and `style_score = 0.5718`
 
 | Label | Score range | The exact text a reader sees |
 |---|---|---|
-| high-confidence human | `0.00 <= score <= 0.35` | We think this was probably written by a person. |
-| unsure | `0.35 < score < 0.65` | We can't tell from the writing alone. This result is uncertain and is not evidence of who wrote it. |
-| high-confidence AI | `0.65 <= score <= 1.00` | This text has patterns our system associates with AI-generated writing. This is not proof of authorship. If this is your own work, you can appeal for review. |
+| high-confidence human | 0.00–0.35, inclusive | We think this was probably written by a person. |
+| unsure | Above 0.35 and below 0.65 | We can't tell from the writing alone. This result is uncertain and is not evidence of who wrote it. |
+| high-confidence AI | 0.65–1.00, inclusive | This text has patterns our system associates with AI-generated writing. This is not proof of authorship. If this is your own work, you can appeal for review. |
 
 **Why I worded the "unsure" one this way:**
 <!-- It's the hardest of the three. It has to admit uncertainty without
@@ -124,23 +124,16 @@ It says plainly that the system cannot tell and that a score is not evidence of 
 ---
 
 ## False-positive trace
-Consider a real writer who uses short, ordinary sentences. For an illustrative score path, suppose their text gets `model_score = 0.92` and `style_score = 0.50`. The combined score is `(0.92 + 0.50) / 2 = 0.71`, above the current `0.65` AI threshold. These scores illustrate how a false positive could occur; they are not a measured model run.
-
-The service would return `guess: "ai"` and the high-confidence-AI wording above. That is a serious false positive: the score describes how the signals reacted to the text, not who wrote it. The writer can send `POST /appeal` with the returned `content_id` and a reason. The intended endpoint appends an appeal to the audit log and marks the item `under_review`; it does not rerun the detector, erase the original score, or itself decide the appeal. A human review step is still needed. `/submit` is implemented; `/appeal` still returns `501` and is not yet available.
+For the personal paragraph in the sample below, `model_score = 0.3868` and `style_score = 0.5291`, producing a combined score of `0.4580` and the `unsure` label. A real writer whose score exceeds `0.65` could receive the AI label despite having written the text. Scores describe the signals' reactions, not authorship. The writer can appeal using the returned content ID; the service records `under_review`, but a person still needs to review the case.
 
 ## Endpoint contracts
-These are the target contracts for the two routes students build. Both accept and return JSON. A successful submission is `200`; malformed requests are `400`; a text exceeding the detector's 400-token scoring limit should be rejected as `413` rather than silently giving the style signal a longer text than the model signal sees. If rate limiting is enabled, a rejected request is `429`. The implementation must keep this behavior aligned with the detector, which currently truncates at 400 tokens.
-
-Every error response has two string fields: `error` is the stable code below, and `message` is a human-readable explanation.
+Both routes accept and return JSON. A successful `/submit` returns `200` with the decision fields. `/appeal` returns `200` when recorded, `400` for malformed or blank fields, `404` for an unknown content ID, and `409` for a duplicate appeal. Rate limiting is currently disabled. The detector truncates inputs to 400 tokens while stylometry measures the full text.
 
 | HTTP status | `error` | When |
 |---|---|---|
-| 400 | `invalid_request` | Invalid JSON or missing, wrongly typed, blank, or unscorable fields. |
+| 400 | `invalid_request` | Appeal request is malformed or missing required fields. |
 | 404 | `content_not_found` | The appeal refers to no recorded decision. |
 | 409 | `appeal_exists` | The decision already has an appeal. |
-| 413 | `text_too_long` | Submission text exceeds the agreed scoring limit. |
-| 429 | `rate_limited` | The configured request limit was reached. |
-| 503 | `detector_unavailable` | The local model cannot be loaded. |
 
 #### `POST /submit`
 
@@ -148,7 +141,7 @@ Request fields:
 
 | Field | Type | Required | Meaning |
 |---|---|---:|---|
-| `text` | string | yes | Non-empty submitted writing; must contain enough tokens for the detector (at least three), and must fit within its 400-token scoring limit. |
+| `text` | string | yes | Submitted writing. The model truncates to its configured 400-token maximum; the current route does not enforce a separate length check. |
 | `creator_id` | string | yes | Caller-supplied writer identifier used for the audit record and rate-limit key. |
 
 Successful response fields:
@@ -163,6 +156,7 @@ Successful response fields:
 | `style_score` | number, 0–1 | Signal-two output, returned so results can be diagnosed. |
 
 For invalid JSON, missing/wrong-type fields, blank text, or text too short to score, return `{ "error": "invalid_request", "message": "..." }` with `400`. Use `413` for text over the agreed scoring limit and `503` if the local detector cannot load. Do not return a decision or write a decision audit entry for rejected input; rejected requests should have a rejection log entry.
+The current `/submit` route does not validate malformed input or log those rejections. Missing or unusable text may fail during detector scoring; this remains a limitation.
 
 #### `POST /appeal`
 
@@ -176,138 +170,79 @@ Request fields:
 The service looks up the original `creator_id` from the audit entry, so the caller does not need to resupply it. On success return `200` with `content_id`, `status: "under_review"`, and a clear acknowledgement that the appeal was recorded, not resolved. Return `400` for malformed or missing fields, `404` for an unknown content ID, and `409` if that item already has an appeal. `audit.log_appeal` appends an event; it must not overwrite the original decision.
 
 This gives a client the fields, score semantics, success states, and failure cases needed to build against the routes. The main implementation check still open is enforcing the same 400-token boundary for both signals.
+The model truncates at 400 tokens while the style signal receives the full text, so long submissions can cause the two signals to measure different portions of the input.
 
 ---
 
 ## Sample Run
-
-<!-- One submission and one appeal, pasted as text: the request, the response,
-     and the log entries. -->
+The example below was captured with Flask's test client and a temporary audit file. It uses my paragraph and does not add example events to the committed `logs/audit.jsonl`; the ID and timestamp will differ on a future run.
 
 **A submission**
+
 Request:
-curl -X POST http://127.0.0.1:5000/submit \
-  -H "Content-Type: application/json" \
-  -d '{"text": "This is a test submission with several words.", "creator_id": "sruthi"}'
-
-Response:
-{
-  "confidence": 0.0,
-  "content_id": "48fb7d38-3e92-4aa6-939b-79521e1fbf70",
-  "guess": "...",
-  "label": "...",
-  "model_score": 0.1027,
-  "style_score": 0.0
-}
-
-Log entry: audit.jsonl
-{
-  "count": 2,
-  "entries": [
-    {
-      "combined_score": null,
-      "content_id": "48fb7d38-3e92-4aa6-939b-79521e1fbf70",
-      "creator_id": "sruthi",
-      "guess": "...",
-      "label": "...",
-      "model_score": 0.1027,
-      "status": "decided",
-      "style_score": 0.0,
-      "timestamp": "2026-11-03T16:19:53+00:00"
-    },
-    {
-      "combined_score": null,
-      "content_id": "8ef1a1ec-c935-4057-bd1c-6e6b30a0f496",
-      "creator_id": "sruthi_sample",
-      "guess": "...",
-      "label": "...",
-      "model_score": 0.3622,
-      "status": "decided",
-      "style_score": 0.0,
-      "timestamp": "2026-11-03T16:22:57+00:00"
-    }
-  ]
-}
-
-Example runs after including the stylometry metrics:
-Case 1: Written by human - works well
-(.venv) sruthi@Sruthikas-MacBook-Air ai201-project4-provenance-guard-starter-v2026 % python stylometry.py "Heylo, this is Sruthi. I'm testing the stylometry metrics here. Today is a good day and the weather is quite nice. I have been doing my assignment since morning and I have been making good progress as well"
-4 sentences, 38 words
-
-sentence_length_spread   0.6107682521238319
-type_token_ratio         0.7894736842105263
-punctuation_density      0.024390243902439025
-style_signal             0.5928729962078677   (higher = more likely AI)
-
-All zeros? These are stubs — Milestone 4 is where you build them.
-(.venv) sruthi@Sruthikas-MacBook-Air ai201-project4-provenance-guard-starter-v2026 % python detector.py "Hi, this is Sruthi. I'm having a pleasant day, and therefore writing a journal entry. The day has been calm and productive, giving me time to appreciate simple moments and reflect on what I hope to accomplish next."                                                                       
-Loading gpt2 (first run downloads ~550 MB)…
-`loss_type=None` was set in the config but it is unrecognized. Using the default loss: `ForCausalLMLoss`.
-perplexity     37.8
-model_signal   0.5690   (higher = more likely AI)
-(.venv) sruthi@Sruthikas-MacBook-Air ai201-project4-provenance-guard-starter-v2026 % python stylometry.py
-3 sentences, 22 words
-
-sentence_length_spread   0.39364791081110845
-type_token_ratio         0.9090909090909091
-punctuation_density      0.022556390977443608
-style_signal             0.5276288429107557   (higher = more likely AI)
-
-All zeros? These are stubs — Milestone 4 is where you build them.
-
-Case 2: Written by AI - In this case, the model's response and our response is not really aligned.
-(.venv) sruthi@Sruthikas-MacBook-Air ai201-project4-provenance-guard-starter-v2026 % python stylometry.py "I started the morning with a cup of tea and a short walk around the neighborhood. The air felt cool, and the streets were quiet. When I got home, I made a list of the tasks I wanted to finish before dinner, then began with the easiest one."
-3 sentences, 48 words
-
-sentence_length_spread   0.4375
-type_token_ratio         0.7291666666666666
-punctuation_density      0.02510460251046025
-style_signal             0.5718131607139249   (higher = more likely AI)
-
-All zeros? These are stubs — Milestone 4 is where you build them.
-(.venv) sruthi@Sruthikas-MacBook-Air ai201-project4-provenance-guard-starter-v2026 % python detector.
-py "I started the morning with a cup of tea and a short walk around the neighborhood. The air felt cool, and the streets were quiet. When I got home, I made a list of the tasks I wanted to finish before dinner, then began with the easiest one."
-Loading gpt2 (first run downloads ~550 MB)…
-`loss_type=None` was set in the config but it is unrecognized. Using the default loss: `ForCausalLMLoss`.
-perplexity     15.5
-model_signal   0.8456   (higher = more likely AI)
-
-<!-- The response needs content_id, guess, confidence, label, AND both
-     signal scores - model_score and style_score. Unit 8's tools read those
-     two off the response, so leaving them out costs you next unit's
-     diagnostics. -->
-
-```bash
-$ curl -X POST http://127.0.0.1:5000/submit \
-  -H "Content-Type: application/json" \
-  -d '{"text": "...", "creator_id": "..."}'
-```
 
 ```json
+{"text":"Heylo, this is Sruthi. I'm testing the stylometry metrics here. Today is a good day and the weather is quite nice. I have been doing my assignment since morning and I have been making good progress as well","creator_id":"sruthi"}
+```
 
+Response:
+
+```json
+{
+     "confidence": 0.45797427473573427,
+     "content_id": "14bfac1a-2235-442d-9107-eba9d3794f05",
+     "guess": "unsure",
+     "label": "We can't tell from the writing alone. This result is uncertain and is not evidence of who wrote it.",
+     "model_score": 0.3868,
+     "style_score": 0.5291485494714686
+}
 ```
 
 **An appeal**
 
-```bash
-$ curl -X POST http://127.0.0.1:5000/appeal \
-  -H "Content-Type: application/json" \
-  -d '{"content_id": "...", "reasoning": "..."}'
-```
+Request:
 
 ```json
+{"content_id":"14bfac1a-2235-442d-9107-eba9d3794f05","reasoning":"I wrote this paragraph myself and would like a person to review the result."}
+```
 
+Response:
+
+```json
+{
+     "content_id": "14bfac1a-2235-442d-9107-eba9d3794f05",
+     "message": "Your appeal has been recorded for review.",
+     "status": "under_review"
+}
 ```
 
 **What the log shows afterwards**
 
-```bash
-$ curl "http://127.0.0.1:5000/log?limit=3"
-```
-
 ```json
-
-```
+{
+     "count": 2,
+     "entries": [
+          {
+               "combined_score": 0.45797427473573427,
+               "content_id": "14bfac1a-2235-442d-9107-eba9d3794f05",
+               "creator_id": "sruthi",
+               "guess": "unsure",
+               "label": "We can't tell from the writing alone. This result is uncertain and is not evidence of who wrote it.",
+               "model_score": 0.3868,
+               "status": "decided",
+               "style_score": 0.5291485494714686,
+               "timestamp": "2026-11-03T18:09:11+00:00"
+          },
+          {
+               "content_id": "14bfac1a-2235-442d-9107-eba9d3794f05",
+               "creator_id": "sruthi",
+               "event": "appeal",
+               "reasoning": "I wrote this paragraph myself and would like a person to review the result.",
+               "status": "under_review",
+               "timestamp": "2026-11-03T18:09:11+00:00"
+          }
+     ]
+}
 
 ---
 
