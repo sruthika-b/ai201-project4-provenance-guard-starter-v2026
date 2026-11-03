@@ -32,6 +32,7 @@ anything together:
 
 import re
 import statistics
+import unicodedata
 
 
 def sentences(text: str) -> list[str]:
@@ -64,8 +65,15 @@ def sentence_length_spread(text: str) -> float:
     `stdev` raises on fewer than two values. Decide what that should return
     before the attack set decides for you.
     """
-    # TODO: replace this
-    return 0.0
+    lengths = [len(words(sentence)) for sentence in sentences(text)]
+    if len(lengths) < 2:
+        return 0.0
+
+    mean_length = statistics.mean(lengths)
+    if mean_length == 0:
+        return 0.0
+
+    return statistics.stdev(lengths) / mean_length
 
 
 def type_token_ratio(text: str) -> float:
@@ -80,8 +88,11 @@ def type_token_ratio(text: str) -> float:
     directly comparable on it, and if your test inputs vary a lot in length,
     that alone can look like a signal.
     """
-    # TODO: replace this
-    return 0.0
+    tokens = words(text)
+    if not tokens:
+        return 0.0
+
+    return len(set(tokens)) / len(tokens)
 
 
 def punctuation_density(text: str) -> float:
@@ -94,8 +105,13 @@ def punctuation_density(text: str) -> float:
         more interesting than full stops, because they vary more between
         writers.
     """
-    # TODO: replace this
-    return 0.0
+    if not text:
+        return 0.0
+
+    punctuation_count = sum(
+        unicodedata.category(char).startswith("P") for char in text
+    )
+    return punctuation_count / len(text)
 
 
 # ── Combining them ───────────────────────────────────────────────────────────
@@ -117,13 +133,27 @@ def style_signal(text: str) -> float:
          between 0 and 1; a raw punctuation count doesn't. Adding them
          unscaled means whichever has the bigger numbers wins by default.
 
+    This implementation uses an equal-weight mean. Sentence spread is
+    normalized as 1 / (1 + spread), vocabulary variety is flipped as
+    1 - type-token ratio, and punctuation density is flipped after scaling
+    10% punctuation to the top of its range. These are heuristic tendencies,
+    not evidence of authorship.
+
     Test it on the four calibration inputs from Milestone 4 — clearly AI,
     clearly human, plain conventional human writing, lightly-edited AI — before
     you trust it. Plain and ordinary, not formal: formal prose reads as *human*
     to signal one, and it is plain writing that gets accused.
     """
-    # TODO: replace this
-    return 0.5
+    tokens = words(text)
+    if not tokens:
+        return 0.5
+
+    spread = sentence_length_spread(text)
+    spread_score = 1.0 / (1.0 + spread)
+    vocabulary_score = 1.0 - type_token_ratio(text)
+    punctuation_score = 1.0 - min(punctuation_density(text) / 0.1, 1.0)
+
+    return (spread_score + vocabulary_score + punctuation_score) / 3.0
 
 
 if __name__ == "__main__":
@@ -139,4 +169,4 @@ if __name__ == "__main__":
     print(f"type_token_ratio         {type_token_ratio(text)}")
     print(f"punctuation_density      {punctuation_density(text)}")
     print(f"style_signal             {style_signal(text)}   (higher = more likely AI)")
-    print("\nAll zeros? These are stubs — Milestone 4 is where you build them.")
+    print("\nThese surface-style scores are heuristics, not proof of authorship.")

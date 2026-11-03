@@ -72,7 +72,7 @@ The route currently returns `501 not_implemented`; the style measurements and la
 
 ### Signal two — the style signal
 
-**What it measures:** The intended signal measures surface form: sentence-length variation, type-token ratio (unique words relative to total words), and punctuation density. These measures are combined into a 0–1 score where higher means more AI-like. Those functions currently return placeholders, so this is the design target rather than working behavior.
+**What it measures:** The style signal measures surface form: sentence-length variation, type-token ratio (unique words relative to total words), and punctuation density. The implementation converts each into a 0–1 AI like component and takes their equal weight mean. Low sentence length variation, repeated vocabulary, and low punctuation density push the score upward. This is a heuristic not a validated authorship test.
 
 **Why that might differ between human and AI writing:** Generated prose can be more even in sentence length and reuse a narrower vocabulary; an individual human writer may produce more uneven rhythms and distinctive punctuation. These are tendencies, not authorship rules.
 
@@ -124,8 +124,7 @@ It says plainly that the system cannot tell and that a score is not evidence of 
 ---
 
 ## False-positive trace
-
-Consider a real writer who uses short, ordinary sentences. For a concrete example using the current equal weights, suppose their text gets `model_score = 0.92`; the unfinished style signal currently returns `0.50`. The combined score is `(0.92 + 0.50) / 2 = 0.71`, above the current `0.65` AI threshold. That is an illustrative score path, not a measured model run.
+Consider a real writer who uses short, ordinary sentences. For an illustrative score path, suppose their text gets `model_score = 0.92` and `style_score = 0.50`. The combined score is `(0.92 + 0.50) / 2 = 0.71`, above the current `0.65` AI threshold. These scores illustrate how a false positive could occur; they are not a measured model run.
 
 The service would return `guess: "ai"` and the high-confidence-AI wording above. That is a serious false positive: the score describes how the signals reacted to the text, not who wrote it. The writer can send `POST /appeal` with the returned `content_id` and a reason. The intended endpoint appends an appeal to the audit log and marks the item `under_review`; it does not rerun the detector, erase the original score, or itself decide the appeal. A human review step is still needed. At present `/submit` and `/appeal` both return `501`, so this remedy is a design requirement, not an available feature yet.
 
@@ -186,6 +185,49 @@ This gives a client the fields, score semantics, success states, and failure cas
      and the log entries. -->
 
 **A submission**
+Request:
+curl -X POST http://127.0.0.1:5000/submit \
+  -H "Content-Type: application/json" \
+  -d '{"text": "This is a test submission with several words.", "creator_id": "sruthi"}'
+
+Response:
+{
+  "confidence": 0.0,
+  "content_id": "48fb7d38-3e92-4aa6-939b-79521e1fbf70",
+  "guess": "...",
+  "label": "...",
+  "model_score": 0.1027,
+  "style_score": 0.0
+}
+
+Log entry: audit.jsonl
+{
+  "count": 2,
+  "entries": [
+    {
+      "combined_score": null,
+      "content_id": "48fb7d38-3e92-4aa6-939b-79521e1fbf70",
+      "creator_id": "sruthi",
+      "guess": "...",
+      "label": "...",
+      "model_score": 0.1027,
+      "status": "decided",
+      "style_score": 0.0,
+      "timestamp": "2026-11-03T16:19:53+00:00"
+    },
+    {
+      "combined_score": null,
+      "content_id": "8ef1a1ec-c935-4057-bd1c-6e6b30a0f496",
+      "creator_id": "sruthi_sample",
+      "guess": "...",
+      "label": "...",
+      "model_score": 0.3622,
+      "status": "decided",
+      "style_score": 0.0,
+      "timestamp": "2026-11-03T16:22:57+00:00"
+    }
+  ]
+}
 
 <!-- The response needs content_id, guess, confidence, label, AND both
      signal scores - model_score and style_score. Unit 8's tools read those
