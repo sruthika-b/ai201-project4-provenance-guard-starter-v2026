@@ -21,7 +21,7 @@ import config
 
 def combine_signals(model_score: float, style_score: float) -> float:
     """
-    Combine two 0–1 signals into one 0–1 score. ← TODO (Milestone 4)
+    Combine two 0–1 signals into one 0–1 score using configured weights.
 
     Both inputs point the same way: higher means more likely AI. Your output
     should too.
@@ -49,14 +49,19 @@ def combine_signals(model_score: float, style_score: float) -> float:
       - Milestone 4 asks you to find a case where your two signals split and
         write it down. That case is what this rule exists to handle.
 
-    The weights in config.py are placeholders. Change them, or ignore them and
-    write a different rule.
+    The weighted average normalizes by the sum of the weights. Both weights
+    must be non-negative and their sum must be greater than zero.
     """
-    # TODO: replace this
+    model_weight = config.WEIGHT_MODEL_SIGNAL
+    style_weight = config.WEIGHT_STYLE_SIGNAL
+    total_weight = model_weight + style_weight
+
+    if model_weight < 0 or style_weight < 0 or total_weight <= 0:
+        raise ValueError("Signal weights must be non-negative and sum to more than zero.")
+
     return (
-        config.WEIGHT_MODEL_SIGNAL * model_score
-        + config.WEIGHT_STYLE_SIGNAL * style_score
-    )
+        model_weight * model_score + style_weight * style_score
+    ) / total_weight
 
 
 def score_to_label(score: float) -> tuple[str, str]:

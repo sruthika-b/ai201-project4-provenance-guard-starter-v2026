@@ -50,8 +50,6 @@ def words(text: str) -> list[str]:
 
 def sentence_length_spread(text: str) -> float:
     """
-    How much sentence length varies. ← TODO
-
     Returns:
         A float. Decide yourself what scale it's on and which direction means
         "more human" — then write that down, because your combining rule
@@ -78,7 +76,6 @@ def sentence_length_spread(text: str) -> float:
 
 def type_token_ratio(text: str) -> float:
     """
-    Unique words over total words. ← TODO
 
     Returns:
         A float between 0 and 1. Higher means more varied vocabulary.
@@ -97,7 +94,6 @@ def type_token_ratio(text: str) -> float:
 
 def punctuation_density(text: str) -> float:
     """
-    How much punctuation, relative to length. ← TODO
 
     Returns:
         A float. Whether you count all punctuation or only some kinds — commas,
@@ -118,8 +114,6 @@ def punctuation_density(text: str) -> float:
 
 def style_signal(text: str) -> float:
     """
-    The style signal as a 0–1 score. **Higher means more likely AI.** ← TODO
-
     Combine your three measures into one number. Same direction as
     `detector.model_signal`, so that `scoring.combine_signals` can treat them
     the same way — if one of your signals runs backwards, everything above it
@@ -132,12 +126,6 @@ def style_signal(text: str) -> float:
       2. How to get each onto a comparable scale. A raw type-token ratio sits
          between 0 and 1; a raw punctuation count doesn't. Adding them
          unscaled means whichever has the bigger numbers wins by default.
-
-    This implementation uses an equal-weight mean. Sentence spread is
-    normalized as 1 / (1 + spread), vocabulary variety is flipped as
-    1 - type-token ratio, and punctuation density is flipped after scaling
-    10% punctuation to the top of its range. These are heuristic tendencies,
-    not evidence of authorship.
 
     Test it on the four calibration inputs from Milestone 4 — clearly AI,
     clearly human, plain conventional human writing, lightly-edited AI — before
@@ -169,4 +157,4 @@ if __name__ == "__main__":
     print(f"type_token_ratio         {type_token_ratio(text)}")
     print(f"punctuation_density      {punctuation_density(text)}")
     print(f"style_signal             {style_signal(text)}   (higher = more likely AI)")
-    print("\nThese surface-style scores are heuristics, not proof of authorship.")
+    print("\nAll zeros? These are stubs — Milestone 4 is where you build them.")

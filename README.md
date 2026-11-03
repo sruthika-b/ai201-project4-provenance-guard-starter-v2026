@@ -85,11 +85,11 @@ The route currently returns `501 not_implemented`; the style measurements and la
 
 **The rule:**
 
-Take an equal-weight average. When the signals disagree, the disagreement pulls the result toward the middle and therefore toward `unsure`, instead of letting either signal make the whole decision alone.
+Take a weighted average using the configured signal weights. Disagreement pulls the combined score between the two signals, but does not automatically mean `unsure`; the configured label thresholds decide the final label. This lets one signal temper the other without allowing disagreement alone to override the score.
 
 **The numbers:**
 
-`combined_score = 0.5 * model_score + 0.5 * style_score`. These are the current placeholder weights in `config.py`; they need calibration against real human writing before being treated as validated.
+With `WEIGHT_MODEL_SIGNAL = 0.5` and `WEIGHT_STYLE_SIGNAL = 0.5` in `config.py`, `combined_score = (0.5 * model_score + 0.5 * style_score) / (0.5 + 0.5)`. The weights currently give each signal equal influence; they should be calibrated against real writing before being treated as validated.
 
 **Where it lives:** `scoring.py::combine_signals`
 
@@ -97,7 +97,7 @@ Take an equal-weight average. When the signals disagree, the disagreement pulls 
      somewhere else, say where. -->
 
 **A case where my two signals split, and what my rule does with it:**
-If `model_score = 0.90` and `style_score = 0.10`, the combined score is `0.50`. With the current thresholds that is `unsure`. The disagreement itself is evidence of uncertainty, not a reason to choose the more alarming score.
+For the mixed-style paragraph, `model_score = 0.8456` and `style_score = 0.5718`, so the equal-weight average is `0.7087`. Since that exceeds the current `AI_THRESHOLD = 0.65`, the label is high-confidence AI, even though the style signal is less AI-like. The average tempers the model score, but not enough to change its label in this example; that is a remaining false-positive risk to evaluate.
 
 ---
 
@@ -110,9 +110,9 @@ If `model_score = 0.90` and `style_score = 0.10`, the combined score is `0.50`. 
 
 | Label | Score range | The exact text a reader sees |
 |---|---|---|
-| high-confidence human | 0.00–0.35, inclusive | We think this was probably written by a person. |
-| unsure | Above 0.35 and below 0.65 | We can't tell from the writing alone. This result is uncertain and is not evidence of who wrote it. |
-| high-confidence AI | 0.65–1.00, inclusive | This text has patterns our system associates with AI-generated writing. This is not proof of authorship. If this is your own work, you can appeal for review. |
+| high-confidence human | `0.00 <= score <= 0.35` | We think this was probably written by a person. |
+| unsure | `0.35 < score < 0.65` | We can't tell from the writing alone. This result is uncertain and is not evidence of who wrote it. |
+| high-confidence AI | `0.65 <= score <= 1.00` | This text has patterns our system associates with AI-generated writing. This is not proof of authorship. If this is your own work, you can appeal for review. |
 
 **Why I worded the "unsure" one this way:**
 <!-- It's the hardest of the three. It has to admit uncertainty without
@@ -228,6 +228,49 @@ Log entry: audit.jsonl
     }
   ]
 }
+
+Example runs after including the stylometry metrics:
+Case 1: Written by human - works well
+(.venv) sruthi@Sruthikas-MacBook-Air ai201-project4-provenance-guard-starter-v2026 % python stylometry.py "Heylo, this is Sruthi. I'm testing the stylometry metrics here. Today is a good day and the weather is quite nice. I have been doing my assignment since morning and I have been making good progress as well"
+4 sentences, 38 words
+
+sentence_length_spread   0.6107682521238319
+type_token_ratio         0.7894736842105263
+punctuation_density      0.024390243902439025
+style_signal             0.5928729962078677   (higher = more likely AI)
+
+All zeros? These are stubs — Milestone 4 is where you build them.
+(.venv) sruthi@Sruthikas-MacBook-Air ai201-project4-provenance-guard-starter-v2026 % python detector.py "Hi, this is Sruthi. I'm having a pleasant day, and therefore writing a journal entry. The day has been calm and productive, giving me time to appreciate simple moments and reflect on what I hope to accomplish next."                                                                       
+Loading gpt2 (first run downloads ~550 MB)…
+`loss_type=None` was set in the config but it is unrecognized. Using the default loss: `ForCausalLMLoss`.
+perplexity     37.8
+model_signal   0.5690   (higher = more likely AI)
+(.venv) sruthi@Sruthikas-MacBook-Air ai201-project4-provenance-guard-starter-v2026 % python stylometry.py
+3 sentences, 22 words
+
+sentence_length_spread   0.39364791081110845
+type_token_ratio         0.9090909090909091
+punctuation_density      0.022556390977443608
+style_signal             0.5276288429107557   (higher = more likely AI)
+
+All zeros? These are stubs — Milestone 4 is where you build them.
+
+Case 2: Written by AI - In this case, the model's response and our response is not really aligned.
+(.venv) sruthi@Sruthikas-MacBook-Air ai201-project4-provenance-guard-starter-v2026 % python stylometry.py "I started the morning with a cup of tea and a short walk around the neighborhood. The air felt cool, and the streets were quiet. When I got home, I made a list of the tasks I wanted to finish before dinner, then began with the easiest one."
+3 sentences, 48 words
+
+sentence_length_spread   0.4375
+type_token_ratio         0.7291666666666666
+punctuation_density      0.02510460251046025
+style_signal             0.5718131607139249   (higher = more likely AI)
+
+All zeros? These are stubs — Milestone 4 is where you build them.
+(.venv) sruthi@Sruthikas-MacBook-Air ai201-project4-provenance-guard-starter-v2026 % python detector.
+py "I started the morning with a cup of tea and a short walk around the neighborhood. The air felt cool, and the streets were quiet. When I got home, I made a list of the tasks I wanted to finish before dinner, then began with the easiest one."
+Loading gpt2 (first run downloads ~550 MB)…
+`loss_type=None` was set in the config but it is unrecognized. Using the default loss: `ForCausalLMLoss`.
+perplexity     15.5
+model_signal   0.8456   (higher = more likely AI)
 
 <!-- The response needs content_id, guess, confidence, label, AND both
      signal scores - model_score and style_score. Unit 8's tools read those

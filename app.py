@@ -31,6 +31,8 @@ from flask import Flask, jsonify, request
 import audit
 import config
 import detector
+import scoring
+import stylometry
 
 app = Flask(__name__)
 
@@ -209,6 +211,8 @@ def submit():
     # 3. Then call ONE signal — `detector.model_signal(text)` — and put the
     #  real number in. Leave confidence and label as placeholders.
     model_score = detector.model_signal(text) if text else None
+    style_score = stylometry.style_signal(text) if text else 0.5
+    combined_score = scoring.combine_signals(model_score, style_score) if model_score is not None else 0.5
     content_id = str(uuid.uuid4())
 
     audit.log_decision(
@@ -216,7 +220,8 @@ def submit():
         creator_id=creator_id or "unknown",
         guess="...",
         model_score=model_score,
-        style_score=0.0,
+        style_score=style_score,
+        combined_score=combined_score,
         label="...",
         status="decided",
     )
@@ -224,10 +229,10 @@ def submit():
     return jsonify({
         "content_id": content_id,
         "guess": "...",
-        "confidence": 0.0,
+        "confidence": combined_score,
         "label": "...",
         "model_score": model_score if model_score is not None else 0.0,
-        "style_score": 0.0,
+        "style_score": style_score,
     }), 200
 
 
