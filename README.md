@@ -315,15 +315,21 @@ $ curl "http://127.0.0.1:5000/log?limit=3"
 
 **Moment 1**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* I gave in a statement written by me and asked AI to rephrase and add some sentances on it's own to the sentaces I have written.
+- *What came back:* It enhanced the sentances and also added a couple of sentances to it.
+- *What I changed:* I used this build my borderline where there's 50% human involvement and 50% AI involvement for the sentances.
 
 **Moment 2**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* Asked AI to write a random sample on it's own.
+- *What came back:* It gave a paragraph written.
+- *What I changed:* I used this for the second case.
+
+**Moment 3**
+
+- *What I asked for:* Needed help in understanding what are considered as AI behavior and which of those are human behavior in the stubs we have designed while combining it, for example I couldn't understand who comes up with more punctuation, human or AI.
+- *What came back:* AI pointed out the correlation between the signals we have and what behavior it aligns with.
+- *What I changed:* This helped me in designing the combined_scores function establishing the relationship between the attributes and the scores we are generating.
 
 <!-- ═══════════════════════ UNIT 8 — THE TEST ═══════════════════════ -->
 
