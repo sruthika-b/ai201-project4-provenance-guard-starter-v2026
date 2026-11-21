@@ -127,7 +127,7 @@ It says plainly that the system cannot tell and that a score is not evidence of 
 For the personal paragraph in the sample below, `model_score = 0.3868` and `style_score = 0.5291`, producing a combined score of `0.4580` and the `unsure` label. A real writer whose score exceeds `0.65` could receive the AI label despite having written the text. Scores describe the signals' reactions, not authorship. The writer can appeal using the returned content ID; the service records `under_review`, but a person still needs to review the case.
 
 ## Endpoint contracts
-Both routes accept and return JSON. A successful `/submit` returns `200` with the decision fields. `/appeal` returns `200` when recorded, `400` for malformed or blank fields, `404` for an unknown content ID, and `409` for a duplicate appeal. Rate limiting is currently disabled. The detector truncates inputs to 400 tokens while stylometry measures the full text.
+Both routes accept and return JSON. A successful `/submit` returns `200` with the decision fields. `/appeal` returns `200` when recorded, `400` for malformed or blank fields, `404` for an unknown content ID, and `409` for a duplicate appeal. `/submit` is rate limited to 5 requests per minute and 200 per day per creator ID. The detector truncates inputs to 400 tokens while stylometry measures the full text.
 
 | HTTP status | `error` | When |
 |---|---|---|
@@ -272,7 +272,7 @@ Response:
 
 ## Rate Limiting
 
-**My limits:** ___ per minute, ___ per day
+**My limits:** 5 per minute, 200 per day
 
 **Why those numbers and not others:**
 <!-- Think about two people: a real writer submitting their own work a few
@@ -280,7 +280,7 @@ Response:
      thresholds. Your numbers have to be liveable for the first and hostile to
      the second. -->
 
-**What a caller counts as:** <!-- per address, or per creator_id? They fail
+**What a caller counts as:** `creator_id` <!-- per address, or per creator_id? They fail
 differently — one script can look like a thousand callers, and one household
 can look like one. -->
 
@@ -289,8 +289,10 @@ can look like one. -->
 <!-- python run_attacks.py --flood 15 -->
 
 ```
-
+200 200 200 200 200 429 429 429 429 429 429 429 429 429 429
 ```
+
+`GET /log?limit=15` confirmed 10 rejected entries for `flood_tester`, each with reason `rate_limited` and limit `5 per 1 minute`.
 
 ---
 
