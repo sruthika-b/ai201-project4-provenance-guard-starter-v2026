@@ -308,7 +308,115 @@ can look like one. -->
 <!-- Choose entries that show the interesting failures, not the ten easiest. -->
 
 ```json
-
+[
+  {
+    "timestamp": "2026-11-22T04:13:36+00:00",
+    "content_id": "75efa4dd-9799-48f3-82b0-d07a96a14368",
+    "creator_id": "attacker_EV01",
+    "guess": "unsure",
+    "model_score": 0.1635,
+    "style_score": 0.6078353497590352,
+    "combined_score": 0.3856676748795176,
+    "label": "We can't tell from the writing alone. This result is uncertain and is not evidence of who wrote it.",
+    "status": "decided"
+  },
+  {
+    "timestamp": "2026-11-22T04:13:37+00:00",
+    "content_id": "73263adb-87a8-49e1-acf7-2fa5aaf868d7",
+    "creator_id": "attacker_EV09",
+    "guess": "unsure",
+    "model_score": 0.7042,
+    "style_score": 0.5328474827269938,
+    "combined_score": 0.618523741363497,
+    "label": "We can't tell from the writing alone. This result is uncertain and is not evidence of who wrote it.",
+    "status": "decided"
+  },
+  {
+    "timestamp": "2026-11-22T04:13:37+00:00",
+    "content_id": "00c0fdef-a8a0-4db4-a4ba-027773c64fcf",
+    "creator_id": "attacker_FP03",
+    "guess": "ai",
+    "model_score": 0.8051,
+    "style_score": 0.6208497609653284,
+    "combined_score": 0.7129748804826642,
+    "label": "This text has patterns our system associates with AI-generated writing. This is not proof of authorship. If this is your own work, you can appeal for review.",
+    "status": "decided"
+  },
+  {
+    "timestamp": "2026-11-22T04:13:37+00:00",
+    "content_id": "28f14daf-7724-4910-b1fb-019a5f27673e",
+    "creator_id": "attacker_FP05",
+    "guess": "ai",
+    "model_score": 0.8005,
+    "style_score": 0.6561441512925936,
+    "combined_score": 0.7283220756462968,
+    "label": "This text has patterns our system associates with AI-generated writing. This is not proof of authorship. If this is your own work, you can appeal for review.",
+    "status": "decided"
+  },
+  {
+    "timestamp": "2026-11-22T04:13:37+00:00",
+    "content_id": "b9b62477-639c-489e-a7c6-84784d8f9be4",
+    "creator_id": "attacker_FP07",
+    "guess": "ai",
+    "model_score": 0.8816,
+    "style_score": 0.617148677951633,
+    "combined_score": 0.7493743389758165,
+    "label": "This text has patterns our system associates with AI-generated writing. This is not proof of authorship. If this is your own work, you can appeal for review.",
+    "status": "decided"
+  },
+  {
+    "timestamp": "2026-11-22T04:13:37+00:00",
+    "content_id": "c3ade846-e76e-4f63-83ff-55d9ac0f6a55",
+    "creator_id": "attacker_PI02",
+    "guess": "human",
+    "model_score": 0.2044,
+    "style_score": 0.4671281917804378,
+    "combined_score": 0.3357640958902189,
+    "label": "We think this was probably written by a person.",
+    "status": "decided"
+  },
+  {
+    "timestamp": "2026-11-22T04:13:38+00:00",
+    "content_id": "72b6cbe9-182c-486b-a261-333ce1123240",
+    "creator_id": "attacker_MF07",
+    "guess": "ai",
+    "model_score": 0.9064,
+    "style_score": 0.5,
+    "combined_score": 0.7032,
+    "label": "This text has patterns our system associates with AI-generated writing. This is not proof of authorship. If this is your own work, you can appeal for review.",
+    "status": "decided"
+  },
+  {
+    "timestamp": "2026-11-22T04:13:38+00:00",
+    "content_id": "3ec130c6-036a-411f-ae10-0b452bb36733",
+    "creator_id": "attacker_MF08",
+    "guess": "ai",
+    "model_score": 0.9876,
+    "style_score": 0.8342998552692413,
+    "combined_score": 0.9109499276346207,
+    "label": "This text has patterns our system associates with AI-generated writing. This is not proof of authorship. If this is your own work, you can appeal for review.",
+    "status": "decided"
+  },
+  {
+    "timestamp": "2026-11-22T04:13:38+00:00",
+    "content_id": "7d06efaf-ca01-4c49-add2-11011e995141",
+    "creator_id": "attacker_RQ01",
+    "guess": "unsure",
+    "model_score": null,
+    "style_score": 0.5,
+    "combined_score": 0.5,
+    "label": "We can't tell from the writing alone. This result is uncertain and is not evidence of who wrote it.",
+    "status": "decided"
+  },
+  {
+    "timestamp": "2026-11-22T04:13:38+00:00",
+    "creator_id": "attacker_flood",
+    "event": "rejected",
+    "status": "rejected",
+    "reason": "rate_limited",
+    "limit": "10 per 1 minute"
+  }
+]
 ```
 
 **The single worst outcome** — the one I'd least want to explain to a writer
