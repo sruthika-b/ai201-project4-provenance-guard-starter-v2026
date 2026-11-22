@@ -423,7 +423,7 @@ can look like one. -->
 **The single worst outcome** — the one I'd least want to explain to a writer
 whose work got caught by it:
 
-
+FP07 is the outcome I’d least want to explain. The attack set’s human written passage with deliberate repetition was labeled ai with a combined score of 0.749 (content ID b9b62477-639c-489e-a7c6-84784d8f9be4). A genuine writer could be told their work has patterns associated with AI, even though the score is not proof of authorship. An appeal is available, but it still puts the burden on the writer to challenge a false accusation.
 
 ---
 
