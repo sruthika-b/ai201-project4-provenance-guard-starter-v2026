@@ -37,9 +37,6 @@ SCENARIOS = [
             "It's like if I can see myself completing all the tasks, then I would work on it and if not I wouldn't even finish one, I read somewhere that this all or nothing behaviour is quite bad.",
             "This also reflects in my workout routines, whenever I do gym, I do it perfectly and if at all I eat one wrong meal or a couple of missed workout days back to back, then I sabotage my health as a whole",
             "After which I spiral in, realise I'm at a very bad state and then startover again, while starting over is good, it's not sustainable unless we are consistent, else, there's just a lot of lost progress",
-            "I have recently joined Salesforce and it's my second week at the company, my manager has assigned me certain trainings to finish along with the other trainings assigned to me at an organisation level, I would really need help from someone to organise everything and tackle it",
-            "I'm also lagging behind in my coursework at codepath as well and also skipping gym a lot post my trip, obviously there's a lot to catchup and I'm doing my best in balancing everything.",
-            "I'm scrolling reels a lot which is taking up a huge chunk of my time, I need to stop that as well, there are certain discipline I need to bring in my life."
         ],
     },
     {
