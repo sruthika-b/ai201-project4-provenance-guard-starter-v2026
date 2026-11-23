@@ -526,7 +526,11 @@ that produced it:
 
      Look for a pattern. Five failures on one signal is one problem, not five. -->
 
-
+- Evaluation criterion 1 — false positives: Nine own-writing pieces were tested, not the required ten, and one trial was labeled ai; the mismatch came from the test scenario plus the label-mapping stage. The 0.65 AI threshold was reached by one ordinary piece.
+- Evaluation criterion 2 — label coverage: Signal one, signal two, and label mapping produced only unsure and ai labels. The human band was not reached, and the scenarios did not include a clearly low-scoring example.
+- Evaluation criterion 3 — appeal path: This evaluation runner submitted three pieces but did not call /appeal or check audit entries. The report did not test the appeal mechanism, so the criterion is incomplete rather than evidence that the route passed.
+- Evaluation criterion 4 — score separation: The clearly AI-like and human-like sets did not exceed the required median gap of 0.20. This is a signal and combining-rule failure: neither signal consistently separated the sets, and the equal-weight average did not create enough separation.
+- Evaluation criterion 5 — bad input: The route stage failed. Missing, empty, and null text were accepted and returned 200; the huge text also returned a decision. There is no input validation or rejection logging before signal processing.
 
 ---
 
