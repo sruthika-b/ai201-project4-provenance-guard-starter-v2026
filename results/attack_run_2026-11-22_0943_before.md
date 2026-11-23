@@ -80,11 +80,11 @@ audit log when you go looking for the ten entries to paste.
 
 | Family | Attacks | BROKE | HELD |
 |---|---|---|---|
-| `evasion` | 10 | 9 | 1 |
-| `false_positive` | 8 | 6 | 2 |
+| `evasion` | 10 | 0 | 10 |
+| `false_positive` | 8 | 0 | 8 |
 | `flood_same_creator` | 12 | 0 | 12 |
-| `malformed` | 20 | 20 | 0 |
-| `prompt_injection` | 6 | 1 | 5 |
+| `malformed` | 20 | 5 | 15 |
+| `prompt_injection` | 6 | 0 | 6 |
 
 > The **false_positive** family is the one to look at hardest. Those are
 > written to be genuine human writing that reads as machine-like. Every one

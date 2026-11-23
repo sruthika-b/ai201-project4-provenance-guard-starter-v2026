@@ -433,17 +433,81 @@ FP07 is the outcome I’d least want to explain. The attack set’s human writte
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |
+| 1. False positives | At most 1 of 10 own pieces labeled AI in each trial | 1 of 7 labeled AI | 1 of 7 labeled AI | 1 of 7 labeled AI | MISS |
+| 2. Label coverage | Human, unsure, and AI labels in each trial | No human label | No human label | No human label | MISS |
+| 3. Appeal path | 3 appeals return 200 and under_review, with log entries | 3 submissions only; no appeals made | 3 submissions only; no appeals made | 3 submissions only; no appeals made | MISS |
+| 4. Scores separation | AI median exceeds human median by at least 0.20 | AI −0.014 human | AI −0.014 human | AI −0.014 human | MISS |
+| 5. Bad input | 4 invalid inputs return 400/413 and create rejection entries | All 4 returned 200 | All 4 returned 200 | All 4 returned 200 | MISS |
 
 **Real output from one trial**, pasted as text, naming the file and function
 that produced it:
 
 ```json
-
+[
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.6312931262681175,
+    "model_score": 0.6048,
+    "style_score": 0.657786252536235,
+    "label": "We can't tell from the writing alone. This result is uncertain and is not evidence of who wrote it.",
+    "sent": "I woke up today morning really refreshed and ready to tackle the day. "
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.693045591045591,
+    "model_score": 0.704,
+    "style_score": 0.682091182091182,
+    "label": "This text has patterns our system associates with AI-generated writing. This is not proof of authorship. If this is your own work, you can appeal for review.",
+    "sent": "This might look like a simple thing, but this has actually helped me v"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5658522935779817,
+    "model_score": 0.5262,
+    "style_score": 0.6055045871559633,
+    "label": "We can't tell from the writing alone. This result is uncertain and is not evidence of who wrote it.",
+    "sent": "But there are days where the tasklist is just endless and I don't feel"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.6285882197773918,
+    "model_score": 0.6138,
+    "style_score": 0.6433764395547835,
+    "label": "We can't tell from the writing alone. This result is uncertain and is not evidence of who wrote it.",
+    "sent": "I'm not sure if this is just me or there are folks like me, whenever I"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5579160007833921,
+    "model_score": 0.4947,
+    "style_score": 0.6211320015667842,
+    "label": "We can't tell from the writing alone. This result is uncertain and is not evidence of who wrote it.",
+    "sent": "It's like if I can see myself completing all the tasks, then I would w"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.533429365079365,
+    "model_score": 0.3867,
+    "style_score": 0.6801587301587301,
+    "label": "We can't tell from the writing alone. This result is uncertain and is not evidence of who wrote it.",
+    "sent": "This also reflects in my workout routines, whenever I do gym, I do it "
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.4304962962962963,
+    "model_score": 0.3184,
+    "style_score": 0.5425925925925926,
+    "label": "We can't tell from the writing alone. This result is uncertain and is not evidence of who wrote it.",
+    "sent": "After which I spiral in, realise I'm at a very bad state and then star"
+  }
+]
 ```
 
 **Diagnoses**
