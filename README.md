@@ -553,12 +553,80 @@ The bad-input diagnosis showed that the route was scoring missing, empty, null, 
 | 4. Scores separation | AI median exceeds human median by at least 0.20 | Difference: −0.013 | Difference: −0.013 | Difference: −0.013 | MISS |
 | 5. Bad input | 4 invalid inputs return 400/413 and create rejection entries | 400,400,400,413 | 400,400,400,413 | 400,400,400,413 | MET |
 
+```json
+[
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.6312931262681175,
+    "model_score": 0.6048,
+    "style_score": 0.657786252536235,
+    "label": "We can't tell from the writing alone. This result is uncertain and is not evidence of who wrote it.",
+    "sent": "I woke up today morning really refreshed and ready to tackle the day. "
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.693045591045591,
+    "model_score": 0.704,
+    "style_score": 0.682091182091182,
+    "label": "We can't tell from the writing alone. This result is uncertain and is not evidence of who wrote it.",
+    "sent": "This might look like a simple thing, but this has actually helped me v"
+  },
+  {
+    "status": 200,
+    "guess": "human",
+    "confidence": 0.5658522935779817,
+    "model_score": 0.5262,
+    "style_score": 0.6055045871559633,
+    "label": "We think this was probably written by a person.",
+    "sent": "But there are days where the tasklist is just endless and I don't feel"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.6285882197773918,
+    "model_score": 0.6138,
+    "style_score": 0.6433764395547835,
+    "label": "We can't tell from the writing alone. This result is uncertain and is not evidence of who wrote it.",
+    "sent": "I'm not sure if this is just me or there are folks like me, whenever I"
+  },
+  {
+    "status": 200,
+    "guess": "human",
+    "confidence": 0.5579160007833921,
+    "model_score": 0.4947,
+    "style_score": 0.6211320015667842,
+    "label": "We think this was probably written by a person.",
+    "sent": "It's like if I can see myself completing all the tasks, then I would w"
+  },
+  {
+    "status": 200,
+    "guess": "human",
+    "confidence": 0.533429365079365,
+    "model_score": 0.3867,
+    "style_score": 0.6801587301587301,
+    "label": "We think this was probably written by a person.",
+    "sent": "This also reflects in my workout routines, whenever I do gym, I do it "
+  },
+  {
+    "status": 200,
+    "guess": "human",
+    "confidence": 0.4304962962962963,
+    "model_score": 0.3184,
+    "style_score": 0.5425925925925926,
+    "label": "We think this was probably written by a person.",
+    "sent": "After which I spiral in, realise I'm at a very bad state and then star"
+  }
+]
+```
+
 
 **Did it help, and how do I know:**
 
-<!-- Widening the unsure band usually fixes one problem and creates another.
-     Reporting that trade honestly is worth full credit. -->
+It helped for false positives and bad input. Criterion 1 improved from 1 AI label per trial to 0 AI labels per trial, and criterion 5 improved from four 200 responses to 400, 400, 400, and 413 with rejection entries.
 
+It did not fix label coverage or score separation. Label coverage still lacked an ai result, and every clear AI and human sample remained human-like. It also did not test criterion 3 because the runner only submitted texts and did not call /appeal or verify audit entries.
 
 
 ---
@@ -567,15 +635,18 @@ The bad-input diagnosis showed that the route was scoring missing, empty, null, 
 
 <!-- For each attack still getting through and each criterion still missed:
      what you'd do, and why you stopped. -->
+- Label coverage: The label-mapping still produces no ai result. I would improve signal calibration and add a clearly AI-like example above 0.70; I stopped because there was not enough evidence that changing thresholds alone would improve detection.
 
+- Appeal path: The evaluator does not yet call /appeal or verify under_review and audit entries. I would update the runner to submit three texts, retain their content IDs, appeal each one, and inspect the log.
+
+- Score separation: The clearly AI-like and human-like samples still overlap: the AI median is about 0.013 lower than the human median. I would improve or replace the weak signal, especially sentence/style heuristics, and rerun with more clearly separated examples. I stopped at a diagnosis stage because no validated improvement was ready to test.
 
 
 **The trade I'd make if this ran for real:**
 
 <!-- Two sentences. Fewer wrong accusations means more AI text getting through.
      Say which way you'd go and WHO PAYS FOR IT. -->
-
-
+I would prioritize fewer false accusations and keep the unsure band wide, because accusing a real writer is more harmful than allowing some AI writing to pass. Human writers would pay less risk, while the system would miss or classify more AI-written text as uncertain
 
 <!-- ═════════════════════════════════════════════════════════════════════
 
