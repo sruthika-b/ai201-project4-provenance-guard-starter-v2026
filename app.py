@@ -202,16 +202,107 @@ def submit():
     what should this do when `text` is missing, empty, or enormous? A crash on
     a malformed input is one of the most common real failures there is.
     """
-    payload = request.get_json(silent=True) or {}
+    payload = request.get_json(silent=True)
 
-    # 2. Then pull `text` and `creator_id` out of the payload.
+    if not isinstance(payload, dict):
+        audit.log_rejection(
+            creator_id="unknown",
+            reason="invalid_request",
+            detail="Request body must be a JSON object",
+        )
+        return jsonify({
+            "error": "invalid_request",
+            "message": "Request body must be a JSON object.",
+        }), 400
+
     text = payload.get("text")
     creator_id = payload.get("creator_id")
 
+    if not isinstance(creator_id, str) or not creator_id.strip():
+        audit.log_rejection(
+            creator_id="unknown",
+            reason="invalid_creator_id",
+            detail="creator_id must be a non-empty string",
+        )
+        return jsonify({
+            "error": "invalid_request",
+            "message": "creator_id must be a non-empty string.",
+        }), 400
 
-    model_score = detector.model_signal(text) if text else None
-    style_score = stylometry.style_signal(text) if text else 0.5
-    combined_score = scoring.combine_signals(model_score, style_score) if model_score is not None else 0.5
+    creator_id = creator_id.strip()
+
+    if "text" not in payload:
+        audit.log_rejection(
+            creator_id=creator_id,
+            reason="missing_text",
+            detail="text field is required",
+        )
+        return jsonify({
+            "error": "invalid_request",
+            "message": "text is required.",
+        }), 400
+
+    if not isinstance(text, str):
+        audit.log_rejection(
+            creator_id=creator_id,
+            reason="invalid_text_type",
+            detail="text must be a string",
+        )
+        return jsonify({
+            "error": "invalid_request",
+            "message": "text must be a string.",
+        }), 400
+
+    text = text.strip()
+
+    if not text:
+        audit.log_rejection(
+            creator_id=creator_id,
+            reason="empty_text",
+            detail="text must not be blank",
+        )
+        return jsonify({
+            "error": "invalid_request",
+            "message": "text must not be blank.",
+        }), 400
+
+    if len(text) < config.SUBMIT_MIN_CHARS:
+        audit.log_rejection(
+            creator_id=creator_id,
+            reason="text_too_short",
+            detail=f"text must contain at least {config.SUBMIT_MIN_CHARS} characters",
+        )
+        return jsonify({
+            "error": "invalid_request",
+            "message": f"text must contain at least {config.SUBMIT_MIN_CHARS} characters.",
+        }), 400
+
+    if len(text) > config.SUBMIT_MAX_CHARS:
+        audit.log_rejection(
+            creator_id=creator_id,
+            reason="text_too_large",
+            detail=f"text exceeds {config.SUBMIT_MAX_CHARS} characters",
+        )
+        return jsonify({
+            "error": "text_too_large",
+            "message": f"text exceeds the {config.SUBMIT_MAX_CHARS}-character limit.",
+        }), 413
+
+    try:
+        model_score = detector.model_signal(text)
+    except detector.DetectorUnavailable as exc:
+        audit.log_rejection(
+            creator_id=creator_id,
+            reason="detector_unavailable",
+            detail=str(exc),
+        )
+        return jsonify({
+            "error": "detector_unavailable",
+            "message": "The local detector could not be loaded.",
+        }), 503
+
+    style_score = stylometry.style_signal(text)
+    combined_score = scoring.combine_signals(model_score, style_score)
     guess, label = scoring.score_to_label(combined_score)
     content_id = str(uuid.uuid4())
 

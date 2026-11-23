@@ -46,6 +46,11 @@ DETECTOR_MODEL = os.getenv("AI201_DETECTOR_MODEL", "gpt2")
 # 300 words, which is enough for the signal to mean something.
 DETECTOR_MAX_TOKENS = 400
 
+# Route-level character limit. It is deliberately separate from model token
+# truncation so oversized submissions can be rejected before the detector runs.
+SUBMIT_MAX_CHARS = 12000
+SUBMIT_MIN_CHARS = 10
+
 
 # ─── Scoring (Milestone 4) ───────────────────────────────────────────────────
 # How much each signal counts toward the combined score.
@@ -72,7 +77,7 @@ WEIGHT_STYLE_SIGNAL = 0.5
 # that decide who pays for it.
 
 HUMAN_THRESHOLD = 0.6
-AI_THRESHOLD = 0.75
+AI_THRESHOLD = 0.7
 
 # ⚠️ One thing that catches people out in Milestone 5. A weighted average can
 # only land between its two inputs — so while `style_signal` is still the stub

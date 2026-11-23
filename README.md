@@ -537,13 +537,21 @@ that produced it:
 ## The Improvement
 
 **What I changed:**
+I added route-level validation and rejection logging for malformed submissions. /submit now rejects missing, empty, wrong-type, too-short, and oversized text with 400 or 413, records a rejection, and avoids decision logging. I also widened the human/AI thresholds to 0.60 and 0.70, reducing false AI accusations.
 
 **Which diagnosis pointed at it:**
+The bad-input diagnosis showed that the route was scoring missing, empty, null, and oversized inputs instead of validating them. The false-positive diagnoses also showed that ordinary personal writing could cross the original threshold. The remaining misses—appeals and score separation—remain because the runner did not test /appeal and the score medians still overlapped.
 
 ### Attack Run — After
 
 <!-- Same format. `run_attacks.py --label after` -->
-
+| Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
+|---|---|---|---|---|---|
+| 1. False positives | At most 1 of 10 own pieces labeled AI in each trial | 0 of 7 labeled AI | 0 of 7 labeled AI | 0 of 7 labeled AI | MET |
+| 2. Label coverage | Human, unsure, and AI labels in each trial | No AI label | No AI label | No AI label | MISS |
+| 3. Appeal path | 3 appeals return 200 and under_review, with log entries | 3 submissions only; no appeals made | 3 submissions only; no appeals made | 3 submissions only; no appeals made | MISS |
+| 4. Scores separation | AI median exceeds human median by at least 0.20 | Difference: −0.013 | Difference: −0.013 | Difference: −0.013 | MISS |
+| 5. Bad input | 4 invalid inputs return 400/413 and create rejection entries | 400,400,400,413 | 400,400,400,413 | 400,400,400,413 | MET |
 
 
 **Did it help, and how do I know:**
